@@ -2,11 +2,11 @@
 * 1 hidden layer (and 2 hidden layers) neural network in Python 2
 * Including trained model of handwritten digit database MNIST
 
-## Dependencies
-Python 2
-NumPy
-scikit-learn
-matplotlib
+## Requirements
+Python 2  
+NumPy  
+scikit-learn  
+matplotlib  
 
 ## Examples
 
