@@ -1,3 +1,15 @@
 # Neural Network in Python
 * 1 hidden layer (and 2 hidden layers) neural network in Python 2
-* Including trained model by handwritten digit database MNIST
+* Including trained model of handwritten digit database MNIST
+
+## Dependencies
+Python 2
+NumPy
+scikit-learn
+matplotlib
+
+## Examples
+
+
+
+
