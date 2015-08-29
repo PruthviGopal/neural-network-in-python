@@ -9,7 +9,8 @@ scikit-learn
 matplotlib  
 
 ## Examples
-
+a validation sample and its outputs of NN
+![Prediction](/examples/NNH1_pred.png)  
 
 
 
