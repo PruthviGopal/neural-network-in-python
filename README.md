@@ -10,5 +10,5 @@ a validation sample and its outputs of NN
 ![Prediction](/examples/NNH1_pred.png)  
 
 loss, accuracy and training iteration  
-![Prediction](/examples/NNH1_log.png)  
+![Prediction](/examples/NNH1_train_log.png)  
 
