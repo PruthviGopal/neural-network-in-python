@@ -2,7 +2,7 @@
 * 1 hidden layer (and 2 hidden layers) NN in Python 2
 * Including trained model of handwritten digit database MNIST
 
-## Requirements
+## Dependencies
 Python 2, NumPy, scikit-learn, matplotlib  
 
 ## Examples
