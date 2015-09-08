@@ -55,14 +55,16 @@ class NNLayer(object):
         self.db = np.zeros(len(self.b)) # for momentum
 
     def input(self, inputs, train=False):
-        self.z = inputs
         if self.drop: self.z = self.dropout(self.z, train)
+        else: self.z = inputs
         return self.z
 
     def forward(self, inputs, actv_f, train=False):
-        self.u = np.dot(self.w, inputs) + self.b
+        if self.drop:
+            self.u = self.dropout(np.dot(self.w, inputs), train) + self.b
+        else:
+            self.u = np.dot(self.w, inputs) + self.b
         self.z = actv_f(self.u)
-        if self.drop: self.z = self.dropout(self.z, train)
         return self.z
 
     def backward(self, w_upper, deltas_upper, d_actv):
