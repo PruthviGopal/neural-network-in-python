@@ -40,37 +40,34 @@ nnf = NNfunc()
 class NNLayer(object):
 
     def __init__(self, n_in=0, n_unit=0, w=[], b=[]):
-        self.drop = False
-        if (not n_in) and n_unit: # input layer
-            self.n_unit = n_unit
-            return
+        self.dropout = False
         if n_in: # init params
             self.w = nnf.rand(n_in*n_unit).reshape((n_unit,n_in))
             self.b = np.zeros(n_unit)
-            self.n_unit = n_unit
+            self.len_inputs = n_in
         else: # load params
             self.w, self.b = w, b
-            self.n_unit = len(self.w)
+            self.len_inputs = len(self.w)
         self.dw = np.zeros([len(self.w),len(self.w[0])])
         self.db = np.zeros(len(self.b)) # for momentum
 
-    def input(self, inputs, train=False):
-        if self.drop: self.z = self.dropout(self.z, train)
-        else: self.z = inputs
-        return self.z
-
     def forward(self, inputs, actv_f, train=False):
-        if self.drop:
-            self.u = self.dropout(np.dot(self.w, inputs), train) + self.b
+        if self.dropout:
+            self.u = np.dot(self.w, self.drop(inputs, train)) + self.b
         else:
             self.u = np.dot(self.w, inputs) + self.b
         self.z = actv_f(self.u)
         return self.z
 
-    def backward(self, w_upper, deltas_upper, d_actv):
-        deltas = np.dot(np.transpose(w_upper), deltas_upper) * d_actv(self.u)
-        if self.drop: deltas = self.dropout(deltas, train=True)
-        return deltas
+    def backward(self, deltas, u_lower, d_actv):
+        grad = np.dot(np.transpose(self.w), deltas) * d_actv(u_lower)
+        if self.dropout: return self.drop(grad, train=True)
+        else: return grad
+
+    def grad(self, deltas, z_lower):
+        if self.dropout: z_lower = self.drop(z_lower, train=True)
+        return np.tile( \
+                deltas, (len(z_lower),1)).T * np.tile(z_lower, (len(deltas),1))
 
     def update_params(self, gw, gb, lr, wdecay, momentum):
         dw = -lr*(gw + wdecay*self.w) + momentum*self.dw
@@ -79,11 +76,11 @@ class NNLayer(object):
         self.dw, self.db = dw, db # for momentum
 
     def set_dropout(self, p):
-        self.drop = True
+        self.dropout = True
         self.drop_p = p
-        self.drop_fltrs = nnf.dropout(self.n_unit, p)
+        self.drop_fltrs = nnf.dropout(self.len_inputs, p)
 
-    def dropout(self, inputs, train):
+    def drop(self, inputs, train):
         if train: inputs *= self.drop_fltrs # train
         else: inputs *= self.drop_p # test
         return inputs
@@ -93,37 +90,31 @@ class NNH1(object):
     def __init__(self, n_units=[], filename=''):
         if filename:
             params = np.load(filename)
-            self.l0 = NNLayer(n_in=0, n_unit=len(params['w1']))
             self.l1 = NNLayer(w=params['w1'], b=params['b1'])
             self.l2 = NNLayer(w=params['w2'], b=params['b2'])
         else:
-            self.l0 = NNLayer(n_in=0, n_unit=n_units[0])
             self.l1 = NNLayer(n_in=n_units[0], n_unit=n_units[1])
             self.l2 = NNLayer(n_in=n_units[1], n_unit=n_units[2])
             logger.info('Net: %s' % n_units)
 
     def forward(self, datum, train=False):
-        z0 = self.l0.input(datum[0], train)
-        z1 = self.l1.forward(z0, nnf.relu, train)
-        z2 = self.l2.forward(z1, nnf.softmax)
+        self.inputs = datum[0]
+        z1 = self.l1.forward(self.inputs, nnf.relu, train)
+        z2 = self.l2.forward(z1, nnf.softmax, train)
         loss = -np.log(z2[datum[1]])
         return z2, loss
 
-    def grad(self, delta, z_lower):
-        return np.tile(delta, (len(z_lower),1)).T \
-                    * np.tile(z_lower, (len(delta),1))
-
     def backward(self, outputs, target):
         targets = np.array([1 if target == i else 0 for i in range(10)])
-        delta2 = outputs - targets
-        grad2w = self.grad(delta2, self.l1.z)
-        delta1 = self.l1.backward(self.l2.w, delta2, nnf.d_relu)
-        grad1w = self.grad(delta1, self.l0.z)
+        delta2 = outputs - targets 
+        grad2w = self.l2.grad(delta2, self.l1.z)
+        delta1 = self.l2.backward(delta2, self.l1.u, nnf.d_relu)
+        grad1w = self.l1.grad(delta1, self.inputs)
         return grad1w, delta1, grad2w, delta2
 
     def set_dropout(self, drop_pi, drop_ph):
-        if not drop_pi == 1: self.l0.set_dropout(drop_pi)
-        if not drop_ph == 1: self.l1.set_dropout(drop_ph)
+        if not drop_pi == 1: self.l1.set_dropout(drop_pi)
+        if not drop_ph == 1: self.l2.set_dropout(drop_ph)
 
     def test(self, data):
         accuracy_cnt ,sum_loss = 0, 0
@@ -228,18 +219,22 @@ class NNH1(object):
             self.l1.w[i][j] += -2*eps
             outputs, loss2 = self.forward(datum, train=True)
             self.l1.w[i][j] += eps
-            print('grad w1[%d][%d]' % (i, j)),
-            print 'DF: '+str((loss1 - loss2) / (2*eps)),
-            print 'BP: '+str(grads[0][i][j])
+            grads_df = (loss1 - loss2) / (2*eps)
+            if grads_df > eps and grads[0][i][j] > eps:
+                print('grad w1[%d][%d]' % (i, j)),
+                print 'DF: '+str(grads_df),
+                print 'BP: '+str(grads[0][i][j])
         for i, b in enumerate(self.l1.b):
             self.l1.b[i] += eps
             outputs, loss1 = self.forward(datum, train=True)
             self.l1.b[i] += -2*eps
             outputs, loss2 = self.forward(datum, train=True)
             self.l1.b[i] += eps
-            print('grad b1[%d]' % i),
-            print 'DF: '+str((loss1 - loss2) / (2*eps)),
-            print 'BP: '+str(grads[1][i])
+            grads_df = (loss1 - loss2) / (2*eps)
+            if grads_df > eps and grads[1][i] > eps:
+                print('grad b1[%d]' % i),
+                print 'DF: '+str((loss1 - loss2) / (2*eps)),
+                print 'BP: '+str(grads[1][i])
 
     def subplot_log(self, xs, ys, labels, titles):
         plt.figure()
