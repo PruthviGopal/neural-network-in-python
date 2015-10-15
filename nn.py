@@ -81,8 +81,9 @@ class NNLayer(object):
         self.drop_fltrs = nnf.dropout(self.len_inputs, p)
 
     def drop(self, inputs, train):
-        if train: inputs *= self.drop_fltrs # train
-        else: inputs *= self.drop_p # test
+        if train:
+            inputs *= self.drop_fltrs
+            inputs /= self.drop_p
         return inputs
 
 class NNH1(object):
@@ -106,7 +107,7 @@ class NNH1(object):
 
     def backward(self, outputs, target):
         targets = np.array([1 if target == i else 0 for i in range(10)])
-        delta2 = outputs - targets 
+        delta2 = outputs - targets
         grad2w = self.l2.grad(delta2, self.l1.z)
         delta1 = self.l2.backward(delta2, self.l1.u, nnf.d_relu)
         grad1w = self.l1.grad(delta1, self.inputs)
@@ -236,25 +237,8 @@ class NNH1(object):
                 print 'DF: '+str((loss1 - loss2) / (2*eps)),
                 print 'BP: '+str(grads[1][i])
 
-    def subplot_log(self, xs, ys, labels, titles):
-        plt.figure()
-        for i in range(len(xs)-1):
-            plt.subplot(len(xs)-1, 1, i+1)
-            plt.xlabel('iteration')
-            plt.ylabel(labels[i])
-            plt.title(titles[i])
-            if i == 0:
-                plt.plot(xs[i][0], ys[i][0], label='loss(train)')
-                plt.plot(xs[i][1], ys[i][1], label='loss(test)')
-                plt.legend()
-            else:
-                plt.plot(xs[i], ys[i])
-        plt.tight_layout()
-        plt.show()
-
     def plot_log(self, filename):
-        losses, lrs, accrs, test_losses, \
-            its_loss, its_lr, its_test = ([] for i in range(7))
+        losses, accrs, test_losses, its_loss, its_test = ([] for i in range(5))
         logdata = open(filename)
         for line in logdata:
             line = line.split()
@@ -267,15 +251,19 @@ class NNH1(object):
                 its_test.append(line[4])
             elif line[5] == 'accuracy:':
                 accrs.append(100*float(line[6]))
-            elif line[5] == 'lr:':
-                if lrs:
-                    lrs.append(lrs[-1])
-                    its_lr.append(int(line[4])-1)
-                lrs.append(line[6])
-                its_lr.append(line[4])
-        lrs.append(lrs[-1])
-        its_lr.append(its_loss[-1])
-        self.subplot_log([[its_loss, its_test], its_test, its_lr], \
-                     [[losses, test_losses], accrs, lrs], \
-                     ['loss', 'accuracy(%)', 'lr'], \
-                     ['Loss', 'Accuracy', 'Lerning Rate'])
+        fig, ax1 = plt.subplots()
+        ax1.plot(its_test, accrs, 'b-')
+        ax1.set_xlabel('iteration')
+        ax1.set_ylabel('accuracy(%)', color='b')
+        for tl in ax1.get_yticklabels():
+            tl.set_color('b')
+        plt.legend(['test accuracy'], bbox_to_anchor=(1,0.95))
+        ax2 = ax1.twinx()
+        ax2.plot(its_loss, losses, ls='-', lw=0.5, color='#ffaa00')
+        ax2.plot(its_test, test_losses, 'r-')
+        ax2.set_ylabel('loss', color='r')
+        for tl in ax2.get_yticklabels():
+            tl.set_color('r')
+        plt.legend(['train loss', 'test loss'], bbox_to_anchor=(1,0.86))
+        plt.tight_layout()
+        plt.show()

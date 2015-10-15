@@ -17,11 +17,11 @@ np.random.shuffle(train_data)
 np.random.shuffle(test_data)
 
 import nn
-logfilename = 'NNH1'
+logfilename = 'NNH1_'
 nn.set_log(logfilename)
 net = nn.NNH1(n_units=[784,100,10])
-net.train(train_data, test_data, batch_size=100, test_step=100, epoch=10, \
-            lr=0.1, lr_step=3000, lr_mult=0.1, wdecay=0.0005, \
-            momentum=0.9, drop_pi=1.0, drop_ph=1.0, disp_step=10)
+net.train(train_data, test_data, batch_size=10, test_step=1000, epoch=10, \
+            lr=0.01, lr_step=30000, lr_mult=0.1, wdecay=0.0005, momentum=0.9,\
+            drop_ph=1.0, disp_step=100)
 net.save(logfilename+'.npz')
 net.plot_log(logfilename+'.log')
