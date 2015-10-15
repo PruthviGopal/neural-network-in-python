@@ -17,7 +17,7 @@ np.random.shuffle(train_data)
 np.random.shuffle(test_data)
 
 import nn
-logfilename = 'NNH1_'
+logfilename = 'NNH1'
 nn.set_log(logfilename)
 net = nn.NNH1(n_units=[784,100,10])
 net.train(train_data, test_data, batch_size=10, test_step=1000, epoch=10, \
