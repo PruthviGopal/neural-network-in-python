@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.datasets import fetch_mldata
 
-# download mnist data to current/scikit_learn_data/
+# download mnist data to 'scikit_learn_data/'
 # may take a few minutes
 mnist = fetch_mldata('MNIST original')
 mnist.data = mnist.data.astype(np.float32) # 784x70,000
@@ -17,7 +17,7 @@ np.random.shuffle(train_data)
 np.random.shuffle(test_data)
 
 import nn
-net = nn.NNH1(filename='NNH1.npz')
+net = nn.NNH1(filename='nn_model_h1.npz')
 # import nnh2
 # net = nnh2.NNH2(filename='NNH2.npz')
 net.predict(test_data[0], top_k=5)

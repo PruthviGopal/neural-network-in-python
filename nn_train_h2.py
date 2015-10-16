@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.datasets import fetch_mldata
 
-# download mnist data to current/scikit_learn_data/
+# download mnist data to 'scikit_learn_data/'
 # may take a few minutes
 mnist = fetch_mldata('MNIST original')
 mnist.data = mnist.data.astype(np.float32) # 784x70,000
