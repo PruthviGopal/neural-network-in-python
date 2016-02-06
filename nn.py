@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 import numpy as np
 np.random.seed(0)
-
 import logging as lg
 logger = lg.getLogger('NN')
 logger.setLevel(lg.INFO)
@@ -13,109 +12,12 @@ def set_log(logfilename):
     fhandler.setFormatter(lg.Formatter('%(asctime)s %(levelname)s %(message)s'))
     fhandler.setLevel(lg.INFO)
     logger.addHandler(fhandler)
+    shandler = lg.StreamHandler()
+    shandler.setFormatter(lg.Formatter('%(asctime)s %(levelname)s %(message)s'))
+    shandler.setLevel(lg.INFO)
+    logger.addHandler(shandler)
 
-
-class NNfunc(object):
-
-    def rand(self, n):
-        return np.random.normal(0,0.1,n)
-
-    def relu(self, u):
-        return np.array([max(0,x) for x in u])
-
-    def d_relu(self, u):
-        return np.array([1 if x>0 else 0 for x in u])
-
-    def softmax(self, u):
-        u = np.array(u) - np.max(u) # prevent overflow
-        return np.array([np.exp(x) for x in u] / sum([np.exp(x) for x in u]))
-
-    def dropout(self, size, p):
-        bernoullis = np.random.binomial(1, p, size)
-        return bernoullis
-
-nnf = NNfunc()
-
-
-class NNLayer(object):
-
-    def __init__(self, n_in=0, n_unit=0, w=[], b=[]):
-        self.dropout = False
-        if n_in: # init params
-            self.w = nnf.rand(n_in*n_unit).reshape((n_unit,n_in))
-            self.b = np.zeros(n_unit)
-            self.len_inputs = n_in
-        else: # load params
-            self.w, self.b = w, b
-            self.len_inputs = len(self.w)
-        self.dw = np.zeros([len(self.w),len(self.w[0])])
-        self.db = np.zeros(len(self.b)) # for momentum
-
-    def forward(self, inputs, actv_f, train=False):
-        if self.dropout:
-            self.u = np.dot(self.w, self.drop(inputs, train)) + self.b
-        else:
-            self.u = np.dot(self.w, inputs) + self.b
-        self.z = actv_f(self.u)
-        return self.z
-
-    def backward(self, deltas, u_lower, d_actv):
-        grad = np.dot(np.transpose(self.w), deltas) * d_actv(u_lower)
-        if self.dropout: return self.drop(grad, train=True)
-        else: return grad
-
-    def grad(self, deltas, z_lower):
-        if self.dropout: z_lower = self.drop(z_lower, train=True)
-        return np.tile( \
-                deltas, (len(z_lower),1)).T * np.tile(z_lower, (len(deltas),1))
-
-    def update_params(self, gw, gb, lr, wdecay, momentum):
-        dw = -lr*(gw + wdecay*self.w) + momentum*self.dw
-        db = -lr*gb + momentum*self.db
-        self.w, self.b = self.w + dw, self.b + db
-        self.dw, self.db = dw, db # for momentum
-
-    def set_dropout(self, p):
-        self.dropout = True
-        self.drop_p = p
-        self.drop_fltrs = nnf.dropout(self.len_inputs, p)
-
-    def drop(self, inputs, train):
-        if train:
-            inputs *= self.drop_fltrs
-            inputs /= self.drop_p
-        return inputs
-
-class NNH1(object):
-
-    def __init__(self, n_units=[], filename=''):
-        if filename:
-            params = np.load(filename)
-            self.l1 = NNLayer(w=params['w1'], b=params['b1'])
-            self.l2 = NNLayer(w=params['w2'], b=params['b2'])
-        else:
-            self.l1 = NNLayer(n_in=n_units[0], n_unit=n_units[1])
-            self.l2 = NNLayer(n_in=n_units[1], n_unit=n_units[2])
-            logger.info('Net: %s' % n_units)
-
-    def forward(self, datum, train=False):
-        self.inputs = datum[0]
-        z1 = self.l1.forward(self.inputs, nnf.relu, train)
-        z2 = self.l2.forward(z1, nnf.softmax, train)
-        loss = -np.log(z2[datum[1]])
-        return z2, loss
-
-    def backward(self, outputs, target):
-        targets = np.array([1 if target == i else 0 for i in range(10)])
-        delta2 = outputs - targets
-        grad2w = self.l2.grad(delta2, self.l1.z)
-        delta1 = self.l2.backward(delta2, self.l1.u, nnf.d_relu)
-        grad1w = self.l1.grad(delta1, self.inputs)
-        return grad1w, delta1, grad2w, delta2
-
-    def set_dropout(self, drop_pi, drop_ph):
-        if not drop_pi == 1: self.l1.set_dropout(drop_pi)
-        if not drop_ph == 1: self.l2.set_dropout(drop_ph)
+class NN(object):
 
     def test(self, data):
         accuracy_cnt ,sum_loss = 0, 0
@@ -124,25 +26,6 @@ class NNH1(object):
             if data[i][1] == outputs.argmax(): accuracy_cnt += 1
             sum_loss += loss
         return accuracy_cnt*1.0 / len(data), sum_loss / len(data)
-
-    def train_batch(self, data, lr, wdecay, momentum, drop_pi, drop_ph):
-        N = len(data)
-        self.set_dropout(drop_pi, drop_ph)
-        outputs, loss = self.forward(data[0], train=True)
-        grads = self.backward(outputs, data[0][1])
-        w1, b1, w2, b2 = grads[0], grads[1], grads[2], grads[3]
-        for n in range(1,N):
-            self.set_dropout(drop_pi, drop_ph)
-            outputs, loss_n = self.forward(data[n], train=True)
-            loss += loss_n
-            grads = self.backward(outputs, data[n][1])
-            w1 += grads[0]
-            b1 += grads[1]
-            w2 += grads[2]
-            b2 += grads[3]
-        self.l1.update_params(w1/N, b1/N, lr, wdecay, momentum)
-        self.l2.update_params(w2/N, b2/N, lr, wdecay, momentum)
-        return loss/N
 
     def train(self, data, test_data, batch_size=100, test_step=100, epoch=1, \
                 lr=0.1, lr_step=0, lr_mult=1.0, wdecay=0.0005, \
@@ -179,10 +62,6 @@ class NNH1(object):
                     lr *= lr_mult
                     logger.info('Iteration %d lr: %f' % (i+1,lr))
         logger.info('Optimization done.')
-
-    def save(self, filename):
-        np.savez(filename, \
-                    w1=self.l1.w, b1=self.l1.b, w2=self.l2.w, b2=self.l2.b)
 
     def plot_pred(self, datum, results):
         plt.figure(figsize=(10, 5))

@@ -16,8 +16,8 @@ test_data = zip(test_img, test_targets)
 np.random.shuffle(train_data)
 np.random.shuffle(test_data)
 
-import nn
-net = nn.NNH1(filename='nn_model_h1.npz')
+import nnh1
+net = nnh1.NNH1(filename='nn_model_h1.npz')
 # import nnh2
 # net = nnh2.NNH2(filename='NNH2.npz')
 net.predict(test_data[0], top_k=5)
