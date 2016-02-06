@@ -1,8 +1,12 @@
 import numpy as np
-from sklearn.datasets import fetch_mldata
+import nn
+logfilename = 'NNH1'
+nn.set_log(logfilename)
 
 # download mnist data to 'scikit_learn_data/'
 # may take a few minutes
+from sklearn.datasets import fetch_mldata
+nn.logger.info('Downloading MNIST dataset.')
 mnist = fetch_mldata('MNIST original')
 mnist.data = mnist.data.astype(np.float32) # 784x70,000
 mnist.data /= 255 # convert to [0,1]
@@ -16,10 +20,7 @@ test_data = zip(test_img, test_targets)
 np.random.shuffle(train_data)
 np.random.shuffle(test_data)
 
-import nn
 import nnh1
-logfilename = 'NNH1'
-nn.set_log(logfilename)
 net = nnh1.NNH1(n_units=[784,100,10])
 net.train(train_data, test_data, batch_size=10, test_step=1000, epoch=10, \
             lr=0.01, lr_step=30000, lr_mult=0.2, wdecay=0.0005, momentum=0.9,\
