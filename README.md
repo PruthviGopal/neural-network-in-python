@@ -6,7 +6,7 @@
 Python 2, NumPy, scikit-learn, matplotlib  
 
 ## Examples
-* A sample of '8' and its outputs of NN
+* A sample of '8' and its outputs of NN  
 ![Prediction](/examples/NNH1_pred.png)  
 
 * Loss, accuracy and training iteration  
