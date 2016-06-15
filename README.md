@@ -5,6 +5,20 @@
 ## Dependencies
 Python 2, NumPy, scikit-learn, matplotlib  
 
+## Usage
+
+train the model: 
+
+```
+➜  python train.py
+```
+
+classify some digits with trained model
+
+```
+➜  python predict.py
+```
+
 ## Examples
 * A sample of '8' and its outputs of NN  
 ![Prediction](/examples/NNH1_pred.png)  
