@@ -9,13 +9,13 @@ Python 2, NumPy, scikit-learn, matplotlib
 
 train the model: 
 
-```
+```shellsession
 ➜  python train.py
 ```
 
 classify some digits with trained model
 
-```
+```shellsession
 ➜  python predict.py
 ```
 
