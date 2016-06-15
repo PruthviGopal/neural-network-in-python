@@ -1,6 +1,5 @@
 import numpy as np
-import nnfunc
-nnf = nnfunc.NNfunc()
+from nnfunc import nnfunc as nnf
 import nnlayer as nnl
 import nn
 

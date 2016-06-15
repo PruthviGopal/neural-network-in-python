@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
 plt.style.use('ggplot')
+
 import numpy as np
 np.random.seed(0)
+
 import logging as lg
 logger = lg.getLogger('NN')
 logger.setLevel(lg.INFO)
@@ -45,7 +47,7 @@ class NN(object):
         logger.info('Iteration %d accuracy: %f' % (resume_it,accuracy))
         logger.info('Iteration %d loss(test): %f' % (resume_it,test_loss))
         logger.info('Iteration %d lr: %f' % (resume_it,lr))
-        its = range(0, len(data)-batch_size+1, batch_size) * epoch
+        its = list(range(0, len(data)-batch_size+1, batch_size)) * epoch
         for i, it in enumerate(its):
             i += resume_it
             if it == 0: np.random.shuffle(data)
@@ -81,13 +83,12 @@ class NN(object):
     def predict(self, datum, top_k=5):
         print('Label: %s' % datum[1]),
         outputs, loss = self.forward(datum)
-        categories = np.array([0,1,2,3,4,5,6,7,8,9])
-        results = zip(outputs, categories)
+        categories = np.arange(0, 10, 1)
+        results = list(zip(outputs, categories))
         results.sort(reverse=True)
-        self.plot_pred(datum, results[:top_k])
-        print 'predicted as:'
         for rank, (score, name) in enumerate(results[:top_k], start=1):
-            print('#%d | %s | %.3f%%' % (rank, name, score*100))
+            print('#%d | %s | %6.3f%%' % (rank, name, score*100))
+        self.plot_pred(datum, results[:top_k])
 
     def check_grad(self, datum, drop_pi=1, drop_ph=1, eps=0.0001):
         self.set_dropout(drop_pi, drop_ph)
@@ -101,9 +102,9 @@ class NN(object):
             self.l1.w[i][j] += eps
             grads_df = (loss1 - loss2) / (2*eps)
             if grads_df > eps and grads[0][i][j] > eps:
-                print('grad w1[%d][%d]' % (i, j)),
-                print 'DF: '+str(grads_df),
-                print 'BP: '+str(grads[0][i][j])
+                print('grad w1[%d][%d]' % (i, j))
+                print('DF: '+str(grads_df))
+                print('BP: '+str(grads[0][i][j]))
         for i, b in enumerate(self.l1.b):
             self.l1.b[i] += eps
             outputs, loss1 = self.forward(datum, train=True)
@@ -112,9 +113,9 @@ class NN(object):
             self.l1.b[i] += eps
             grads_df = (loss1 - loss2) / (2*eps)
             if grads_df > eps and grads[1][i] > eps:
-                print('grad b1[%d]' % i),
-                print 'DF: '+str((loss1 - loss2) / (2*eps)),
-                print 'BP: '+str(grads[1][i])
+                print('grad b1[%d]' % (i))
+                print('DF: '+str((loss1 - loss2) / (2*eps)))
+                print('BP: '+str(grads[1][i]))
 
     def plot_log(self, filename):
         losses, accrs, test_losses, its_loss, its_test = ([] for i in range(5))
