@@ -3,7 +3,7 @@
 * Including a trained model of handwritten digit database MNIST
 
 ## Dependencies
-Python 2, NumPy, scikit-learn, matplotlib  
+Python 2 or 3, NumPy, scikit-learn, matplotlib  
 
 ## Usage
 
